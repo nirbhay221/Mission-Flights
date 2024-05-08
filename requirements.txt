@@ -16,3 +16,4 @@ uvicorn==0.25.0
 streamlit
 google-cloud-aiplatform
 vertexai
+python-dotenv

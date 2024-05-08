@@ -9,8 +9,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
-
 project = os.getenv("PROJECT_NAME")
 vertexai.init(project = project)
 # Define Tool
