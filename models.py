@@ -71,6 +71,11 @@ class FlightSearchCriteria(BaseModel):
     max_cost: Optional[int] = None
     
 
+class FlightBookCriteria(BaseModel):
+    flight_id: int
+    seat_type: str
+    num_seats: int
+
 # Create the database
 engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(bind=engine)

@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import Depends, HTTPException
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
-from models import Flight, FlightModel, FlightSearchCriteria, get_db
+from models import Flight, FlightModel, FlightSearchCriteria,FlightBookCriteria, get_db
 import logging
 
 # Create a logger for this module
@@ -243,6 +243,16 @@ def handle_flight_book(flight_id: int, seat_type: str, num_seats: int = 1, db: S
 
     # Return a success message
     return {"message": success_message, "flight_info": flight}
+
+
+def book_flights(**params):
+    criteria = FlightBookCriteria(**params)
+    url = f"http://127.0.0.1:8000/book_flight?flight_id={criteria.flight_id}&seat_type={criteria.seat_type}&num_seats={criteria.num_seats}"
+    url += '&page=1&page_size=10'
+    response = requests.post(url,json = params, headers={'accept': 'application/json'})
+    return response.json
+
+
 
 def search_flights(**params):
     """

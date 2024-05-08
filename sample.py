@@ -2,11 +2,17 @@ import vertexai
 import streamlit as st
 from vertexai.preview import generative_models
 from vertexai.preview.generative_models import GenerativeModel, Tool, Part, Content, ChatSession
-from services.flight_manager import search_flights
+from services.flight_manager import search_flights, book_flights
+import os
+from dotenv import load_dotenv
 
-project = "sample-gemini"
+
+load_dotenv()
+
+
+
+project = os.getenv("PROJECT_NAME")
 vertexai.init(project = project)
-
 # Define Tool
 get_search_flights = generative_models.FunctionDeclaration(
     name="get_search_flights",
@@ -36,9 +42,40 @@ get_search_flights = generative_models.FunctionDeclaration(
     },
 )
 
+get_flights_booked = generative_models.FunctionDeclaration(
+    name = "book_flights",
+    description = "Function to book a flight with flight_id, seat_type, num_seats ",
+    parameters= {
+        "type": "object",
+        "properties": {
+            "flight_number": {
+                "type": "string",
+                "description": "The user provides the flight number. For example EL647, IU637 etc."
+            },
+            "seat_type": {
+                "type": "string" ,
+                "description" : "The seat types for the flight are economy, business_class and first_class"
+            },
+            "num_seats": {
+                "type": "integer",
+                "description": "The number of seats given by the user for booking the flight"
+            },
+            "flight_id": {
+                "type" : "integer",
+                "description" : "The flight id is given by the user. For example 1, 2, 3 , 4, 11 etc."
+            },
+        
+
+        },
+        "required": [
+            "flight_number","seat_type","num_seats",
+        ]
+    }
+)
+
 # Define tool and model with tools
 search_tool = generative_models.Tool(
-    function_declarations=[get_search_flights],
+    function_declarations=[get_search_flights,get_flights_booked],
 )
 
 config = generative_models.GenerationConfig(temperature=0.4)
@@ -56,25 +93,43 @@ def handle_response(response):
     if response.candidates[0].content.parts[0].function_call.args:
         # Function call exists, unpack and load into a function
         response_args = response.candidates[0].content.parts[0].function_call.args
+        function_name = response.candidates[0].content.parts[0].function_call.name
         
         function_params = {}
+
         for key in response_args:
             value = response_args[key]
             function_params[key] = value
         
-        results = search_flights(**function_params)
-        
-        if results:
-            intermediate_response = chat.send_message(
-                Part.from_function_response(
-                    name="get_search_flights",
-                    response = results
-                )
-            )
+        if function_name == "get_search_flights":
             
-            return intermediate_response.candidates[0].content.parts[0].text
-        else:
-            return "Search Failed"
+            results = search_flights(**function_params)
+            if results:
+                intermediate_response = chat.send_message(
+                    Part.from_function_response(
+                        name="get_search_flights",
+                        response = results
+                    )
+                )
+                
+                return intermediate_response.candidates[0].content.parts[0].text
+            else:
+                return "Search Failed"
+            
+        elif function_name == "get_flights_booked":
+            
+            results = book_flights(**function_params)
+            if results:
+                intermediate_response = chat.send_message(
+                    Part.from_function_response(
+                        name="get_flights_booked",
+                        response = results
+                    )
+                )
+                
+                return intermediate_response.candidates[0].content.parts[0].text
+            else:
+                return "Booking Failed"
     else:
         # Return just text
         return response.candidates[0].content.parts[0].text
